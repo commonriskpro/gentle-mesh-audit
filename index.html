@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gentle-Mesh — Reporte de Auditoría Arquitectónica y de Seguridad</title>
+  <style>
+    :root {
+      --bg-primary: #090b10;
+      --bg-elevated: #11151f;
+      --bg-card: #151a26;
+      --bg-card-hover: #1a2030;
+      --bg-code: #0b0e16;
+      --border: #232a3d;
+      --border-strong: #313b54;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.14);
+      --crit: #f43f5e;
+      --crit-bg: rgba(244, 63, 94, 0.12);
+      --crit-border: rgba(244, 63, 94, 0.35);
+      --high: #fb923c;
+      --high-bg: rgba(251, 146, 60, 0.12);
+      --high-border: rgba(251, 146, 60, 0.35);
+      --med: #facc15;
+      --med-bg: rgba(250, 204, 21, 0.11);
+      --med-border: rgba(250, 204, 21, 0.32);
+      --low: #38bdf8;
+      --low-bg: rgba(56, 189, 248, 0.11);
+      --low-border: rgba(56, 189, 248, 0.32);
+      --pass: #10b981;
+      --pass-bg: rgba(16, 185, 129, 0.12);
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-primary);
+      background-image: radial-gradient(ellipse 80% 50% at 50% -15%, rgba(56, 189, 248, 0.11), transparent), radial-gradient(ellipse 60% 40% at 90% 10%, rgba(244, 63, 94, 0.07), transparent);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 5rem;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 1.75rem; }
+    header.hero {
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 0 2.25rem;
+      background: linear-gradient(180deg, rgba(17, 21, 31, 0.75) 0%, rgba(9, 11, 16, 0.9) 100%);
+      backdrop-filter: blur(12px);
+    }
+    .hero-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1.5rem; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: var(--font-mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--accent); background: var(--accent-glow); border: 1px solid rgba(56, 189, 248, 0.28);
+      padding: 0.3rem 0.75rem; border-radius: 999px; margin-bottom: 0.85rem;
+    }
+    h1 { font-size: 2.35rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--text-secondary); font-size: 1.02rem; max-width: 760px; }
+    .verdict-box { background: var(--crit-bg); border: 1px solid var(--crit-border); border-radius: 12px; padding: 1rem 1.35rem; text-align: right; min-width: 245px; }
+    .verdict-label { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #fda4af; }
+    .verdict-status { font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--crit); margin-top: 0.15rem; }
+    .verdict-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem; }
+    .meta-strip { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-secondary); font-family: var(--font-mono); }
+    .meta-item strong { color: var(--text-primary); }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
+    .kpi-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.35rem; position: relative; overflow: hidden; transition: transform 0.15s ease, border-color 0.15s ease; }
+    .kpi-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+    .kpi-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .kpi-crit::before { background: var(--crit); }
+    .kpi-high::before { background: var(--high); }
+    .kpi-med::before { background: var(--med); }
+    .kpi-low::before { background: var(--low); }
+    .kpi-total::before { background: var(--accent); }
+    .kpi-num { font-size: 2.2rem; font-weight: 800; font-family: var(--font-mono); line-height: 1.1; }
+    .kpi-crit .kpi-num { color: var(--crit); }
+    .kpi-high .kpi-num { color: var(--high); }
+    .kpi-med .kpi-num { color: var(--med); }
+    .kpi-low .kpi-num { color: var(--low); }
+    .kpi-title { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-top: 0.35rem; font-weight: 600; }
+    .kpi-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; }
+    section { margin-top: 2.75rem; }
+    .section-title { font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.65rem; }
+    .gate-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .gate-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem 1.25rem; }
+    .gate-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
+    .gate-cmd { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-primary); background: var(--bg-code); padding: 0.25rem 0.55rem; border-radius: 6px; border: 1px solid var(--border); }
+    .badge { display: inline-flex; align-items: center; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge-pass { background: var(--pass-bg); color: var(--pass); border: 1px solid rgba(16, 185, 129, 0.35); }
+    .badge-crit { background: var(--crit-bg); color: var(--crit); border: 1px solid var(--crit-border); }
+    .badge-high { background: var(--high-bg); color: var(--high); border: 1px solid var(--high-border); }
+    .badge-med  { background: var(--med-bg);  color: var(--med);  border: 1px solid var(--med-border); }
+    .badge-low  { background: var(--low-bg);  color: var(--low);  border: 1px solid var(--low-border); }
+    .badge-area { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border: 1px solid var(--border); }
+    .gate-detail { font-size: 0.85rem; color: var(--text-secondary); }
+    .controls-bar { position: sticky; top: 0; z-index: 30; background: rgba(9, 11, 16, 0.88); backdrop-filter: blur(14px); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 1rem 0; margin-top: 2.5rem; }
+    .controls-inner { display: flex; flex-wrap: wrap; gap: 0.85rem; align-items: center; justify-content: space-between; }
+    .filter-group { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+    .filter-btn { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); padding: 0.42rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease; font-family: var(--font-sans); }
+    .filter-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+    .filter-btn.active { background: var(--accent); color: #06101e; border-color: var(--accent); }
+    .search-input { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); padding: 0.48rem 0.9rem; border-radius: 8px; font-size: 0.85rem; min-width: 260px; outline: none; font-family: var(--font-sans); }
+    .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+    .findings-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+    .finding-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.15s ease; }
+    .finding-card:hover { border-color: var(--border-strong); }
+    .finding-card[data-severity="CRITICAL"] { border-left: 4px solid var(--crit); }
+    .finding-card[data-severity="HIGH"]     { border-left: 4px solid var(--high); }
+    .finding-card[data-severity="MEDIUM"]   { border-left: 4px solid var(--med); }
+    .finding-card[data-severity="LOW"]      { border-left: 4px solid var(--low); }
+    .finding-header { padding: 1.15rem 1.4rem; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; user-select: none; }
+    .finding-header:hover { background: var(--bg-card-hover); }
+    .finding-title-wrap { display: flex; flex-direction: column; gap: 0.45rem; }
+    .finding-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .finding-id { font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted); }
+    .finding-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+    .finding-file { font-family: var(--font-mono); font-size: 0.79rem; color: var(--accent); word-break: break-all; }
+    .finding-toggle { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted); padding-top: 0.2rem; transition: transform 0.2s ease; }
+    .finding-card.open .finding-toggle { transform: rotate(180deg); }
+    .finding-body { display: none; padding: 0 1.4rem 1.4rem; border-top: 1px solid var(--border); background: rgba(11, 14, 22, 0.45); }
+    .finding-card.open .finding-body { display: block; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1.15rem; }
+    @media (max-width: 860px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-box { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.15rem; }
+    .detail-box h4 { font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.55rem; color: var(--text-secondary); }
+    .detail-box.cause h4 { color: #fda4af; }
+    .detail-box.fix h4   { color: #6ee7b7; }
+    .detail-box p { font-size: 0.9rem; color: var(--text-primary); }
+    pre.code-block { margin-top: 0.9rem; background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8rem; color: #e2e8f0; line-height: 1.5; }
+    .roadmap-table { width: 100%; border-collapse: collapse; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; font-size: 0.88rem; }
+    .roadmap-table th, .roadmap-table td { padding: 0.9rem 1.1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .roadmap-table th { background: rgba(21, 26, 38, 0.9); font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.06em; }
+    .roadmap-table tr:last-child td { border-bottom: none; }
+    .empty-state { text-align: center; padding: 3rem; color: var(--text-secondary); background: var(--bg-elevated); border: 1px dashed var(--border); border-radius: 12px; display: none; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <div class="hero-top">
+        <div>
+          <div class="eyebrow">Auditoría Integral de 5 Frentes · Arquitectura &amp; Seguridad</div>
+          <h1>Gentle-Mesh Audit Report</h1>
+          <p class="subtitle">Inspección profunda de código fuente, criptografía RFC-002, aislamiento de ejecución (Bubblewrap/Runners), concurrencia SQLite WAL, arquitectura de módulos y verificación en vivo con detector de carreras (<code>-race</code>).</p>
+        </div>
+        <div class="verdict-box">
+          <div class="verdict-label">Veredicto Global</div>
+          <div class="verdict-status">NEEDS_CORRECTION</div>
+          <div class="verdict-sub">50 Hallazgos Verificados en Código</div>
+        </div>
+      </div>
+      <div class="meta-strip">
+        <div class="meta-item">Repositorio: <strong><a href="https://github.com/Rafaeldelinares/gentle-mesh" target="_blank">Rafaeldelinares/gentle-mesh</a></strong></div>
+        <div class="meta-item">Commit: <strong>c3e900a (Merge PR #143)</strong></div>
+        <div class="meta-item">Stack: <strong>Go 1.26.10 · CGO_ENABLED=0 · modernc.org/sqlite v1.59.0</strong></div>
+        <div class="meta-item">Tamaño: <strong>182 archivos Go · 24,449 LOC Prod · 47,603 LOC Test (Ratio 1.95x)</strong></div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-crit"><div class="kpi-num">12</div><div class="kpi-title">Críticos (CRITICAL)</div><div class="kpi-desc">Escape de sandbox, SSRF, Path/Symlink Traversal, PKI fail-open, SQLite locks</div></div>
+        <div class="kpi-card kpi-high"><div class="kpi-num">19</div><div class="kpi-title">Altos (HIGH)</div><div class="kpi-desc">Races en estados, pérdida de eventos SSE, OOMs remotos, firmas RFC-002</div></div>
+        <div class="kpi-card kpi-med"><div class="kpi-num">15</div><div class="kpi-title">Medios (MEDIUM)</div><div class="kpi-desc">Fugas de canales, CORS *.ts.net, contradicciones de estado, caché fantasma</div></div>
+        <div class="kpi-card kpi-low"><div class="kpi-num">4</div><div class="kpi-title">Bajos (LOW)</div><div class="kpi-desc">ECDSA KeyUsage RFC 5480, doble escritura redundante, regex en scripts</div></div>
+        <div class="kpi-card kpi-total"><div class="kpi-num">5 / 5</div><div class="kpi-title">Frentes Auditados</div><div class="kpi-desc">Cripto/PKI · Sandbox/HTTP · Concurrencia/DB · Arquitectura · Tests en Vivo</div></div>
+      </div>
+    </div>
+  </header>
+  <main class="container">
+    <section>
+      <h2 class="section-title">⚡ Resultados de Ejecución y Verificación en Vivo (Frente 5)</h2>
+      <div class="gate-grid">
+        <div class="gate-card"><div class="gate-header"><code class="gate-cmd">go vet ./...</code><span class="badge badge-pass">PASS (Exit 0)</span></div><p class="gate-detail">Compilación estática limpia en los 182 archivos Go sin advertencias del compilador.</p></div>
+        <div class="gate-card"><div class="gate-header"><code class="gate-cmd">bash scripts/security-gates.sh</code><span class="badge badge-pass">PASS (3/3 Self-Tests)</span></div><p class="gate-detail">Gates S1, S6 y DB-Artifact pasan, aunque usan regex de una sola línea eludibles con llamadas multilínea.</p></div>
+        <div class="gate-card"><div class="gate-header"><code class="gate-cmd">go test -race ./pkg/server/http</code><span class="badge badge-crit">FAIL (Exit 1 · 34.1s)</span></div><p class="gate-detail">Falla en <code>TestSilentNodeConcurrentEOFAndSweepSingleTransitionAndEvent</code> (<code>silent_node_test.go:435: expected 1 EventError, got 0</code>) por condición de carrera en <code>FailTask</code>.</p></div>
+        <div class="gate-card"><div class="gate-header"><code class="gate-cmd">go test -race ./integration/agent/...</code><span class="badge badge-crit">FAIL (EADDRNOTAVAIL)</span></div><p class="gate-detail"><code>TestServer_SetSigner_ConcurrentRaceFree</code> satura <strong>16,236 sockets en TIME_WAIT</strong> en 2 segundos, agotando los 16,384 puertos efímeros del SO y rompiendo los tests TLS siguientes.</p></div>
+      </div>
+    </section>
+    <section>
+      <h2 class="section-title">🧭 Hoja de Ruta de Remediación Priorizada (Top 5 Acciones Sistémicas)</h2>
+      <table class="roadmap-table">
+        <thead><tr><th>Prioridad</th><th>Frente</th><th>Acción Arquitectónica de Raíz</th><th>Archivos Clave</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-crit">P0 · Inmediato</span></td><td>Frente 2 (Sandbox &amp; Path)</td><td>Cerrar el escape de sandbox montando <code>repoCache</code> y <code>~/.gentle-shell</code> como <code>--ro-bind</code>, forzar <code>-c core.hooksPath=/dev/null</code> en el host, y validar contención con <code>filepath.EvalSymlinks</code> en <code>absPath</code> y <code>resolveWorkspacePath</code>.</td><td><code>pkg/settlement/evaluate.go</code><br/><code>pkg/server/runner/gentleshell.go</code><br/><code>pkg/server/http/handlers.go</code></td></tr>
+          <tr><td><span class="badge badge-crit">P0 · Inmediato</span></td><td>Frente 1 (PKI &amp; Cripto)</td><td>Cambiar la PK de <code>node_certs</code> a <code>serial</code> (nunca sobrescribir seriales viejos al rotar ni hacer fail-open en <code>sql.ErrNoRows</code>), bloquear <code>NodeID</code> takeover en <code>/v1/certs/enroll</code> y eliminar el fallback a <code>time.Now().UnixNano()</code> en generación de tokens.</td><td><code>pkg/server/store/certstore.go</code><br/><code>pkg/server/http/handlers.go</code><br/><code>cmd/gentle-mesh/main.go</code></td></tr>
+          <tr><td><span class="badge badge-crit">P0 · Inmediato</span></td><td>Frente 3 (Concurrencia &amp; DB)</td><td>Unificar el acceso a <code>gentle-mesh.db</code> en un único <code>*sql.DB</code> con <code>SetMaxOpenConns(1)</code> y PRAGMAs en el DSN, quitar <code>ReleaseLock</code>/<code>Drain</code> de <code>handleTaskCancel</code> y hacer atómica la emisión de error + cierre en <code>FailTask</code>.</td><td><code>pkg/server/store/sqlite.go</code><br/><code>pkg/server/http/handlers.go</code><br/><code>pkg/server/task/manager.go</code></td></tr>
+          <tr><td><span class="badge badge-high">P1 · Corto Plazo</span></td><td>Frente 2 (SSRF &amp; DoS)</td><td>Bloquear rangos IP privados/loopback/metadata en Webhooks y Federación, acotar goroutines con un worker pool y envolver lecturas HTTP en <code>io.LimitReader</code> / <code>http.MaxBytesReader</code>.</td><td><code>pkg/server/webhook/dispatcher.go</code><br/><code>pkg/server/federation/manager.go</code></td></tr>
+          <tr><td><span class="badge badge-high">P2 · Estructural</span></td><td>Frente 4 &amp; 5 (Arquitectura &amp; Tests)</td><td>Extraer los 3,241 LOC de servidor RFC-002 desde <code>integration/agent/</code> hacia <code>pkg/</code>, descomponer el monolito <code>cmd/gentle-mesh/main.go</code> (2,462 LOC) y drenar/throttlear conexiones en <code>TestServer_SetSigner_ConcurrentRaceFree</code>.</td><td><code>integration/agent/</code><br/><code>cmd/gentle-mesh/main.go</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+    <div class="controls-bar">
+      <div class="controls-inner">
+        <div class="filter-group" id="area-filters">
+          <button class="filter-btn active" data-area="ALL">Todos los Frentes (50)</button>
+          <button class="filter-btn" data-area="F1">1. Cripto &amp; PKI (8)</button>
+          <button class="filter-btn" data-area="F2">2. Sandbox &amp; HTTP (19)</button>
+          <button class="filter-btn" data-area="F3">3. Concurrencia &amp; SQLite (12)</button>
+          <button class="filter-btn" data-area="F4">4. Arquitectura &amp; Deuda (7)</button>
+          <button class="filter-btn" data-area="F5">5. Tests &amp; Gates (4)</button>
+        </div>
+        <div class="filter-group" id="sev-filters">
+          <button class="filter-btn active" data-sev="ALL">Todas</button>
+          <button class="filter-btn" data-sev="CRITICAL">Critical (12)</button>
+          <button class="filter-btn" data-sev="HIGH">High (19)</button>
+          <button class="filter-btn" data-sev="MEDIUM">Medium (15)</button>
+          <button class="filter-btn" data-sev="LOW">Low (4)</button>
+          <button class="filter-btn" id="toggle-all-btn">Expandir Todo</button>
+        </div>
+        <input type="text" id="search-box" class="search-input" placeholder="Buscar por archivo, función, vector..." />
+      </div>
+    </div>
+    <section style="margin-top: 1.5rem;">
+      <div id="findings-container" class="findings-list"></div>
+      <div id="empty-state" class="empty-state">No se encontraron hallazgos que coincidan con los filtros seleccionados.</div>
+    </section>
+  </main>
+  <script>
+const FINDINGS = [
+  { id: "F1-01", area: "F1", areaLabel: "1. Cripto & PKI", severity: "CRITICAL", title: "Rotación de certificados borra seriales históricos y falla abierto (fail-open), rehabilitando certificados revocados", file: "pkg/server/store/certstore.go:142-167, 273-289 | pkg/server/http/server.go:265-283", cause: "La tabla node_certs define node_id TEXT PRIMARY KEY. Cuando IssueCert rota o re-emite un certificado para un nodo existente, ejecuta ON CONFLICT(node_id) DO UPDATE SET serial = excluded.serial, revoked = 0, borrando el número de serie anterior de SQLite. Luego, en IsCertRevoked, cuando un certificado viejo se conecta por mTLS y su serial ya no existe en la tabla, if err == sql.ErrNoRows { return false, nil } lo trata como NO revocado.", fix: "Cambiar la clave primaria de node_certs a serial TEXT PRIMARY KEY (o mantener una tabla inmutable revoked_serials). Al emitir un nuevo certificado para un node_id, marcar automáticamente todos los seriales previos de ese nodo como revocados.", code: "if err == sql.ErrNoRows {\n    return false, nil // FAIL-OPEN: serial borrado tras rotación pasa como válido\n}" },
+  { id: "F1-02", area: "F1", areaLabel: "1. Cripto & PKI", severity: "CRITICAL", title: "Inscripción CSR (/v1/certs/enroll) permite secuestro de identidad (NodeID takeover) y revive nodos revocados", file: "pkg/server/http/handlers.go:160-222 | pkg/server/store/certstore.go:148-160", cause: "En handleCertsEnroll, el cliente envía cualquier req.NodeID junto a un token de inscripción válido (por ejemplo, un token multi-uso). El handler valida el token y la firma del CSR, pero nunca verifica si req.NodeID ya existe o si fue revocado previamente. Al llamar a IssueCert, el UPSERT pisa el certificado legítimo y resetea revoked = 0, revoked_at = NULL.", fix: "Vincular los tokens de inscripción a un AllowedNodeID opcional y rechazar en handleCertsEnroll cualquier intento de inscribir un node_id que ya posea un certificado activo o esté marcado como revocado, salvo rotación autenticada por administrador.", code: "ON CONFLICT(node_id) DO UPDATE SET serial = excluded.serial, cert_pem = excluded.cert_pem, revoked = 0, revoked_at = NULL" },
+  { id: "F1-03", area: "F1", areaLabel: "1. Cripto & PKI", severity: "HIGH", title: "Contrafirma del Emisor limpia ExecutorSignature y EmitterAcceptanceAt, rompiendo la cadena de custodia", file: "pkg/receipt/chain.go:825-840 | pkg/receipt/signer.go:57-118", cause: "En ComputeEmitterReceiptHash, antes de serializar con JCS (RFC 8785), el código limpia explícitamente cleared.ExecutorSignature = \"\" y cleared.EmitterAcceptanceAt = nil. Por lo tanto, la firma Ed25519 de aceptación o disputa del emisor no queda ligada criptográficamente a la firma del ejecutor ni al instante en que se tomó la decisión.", fix: "Mantener r.ExecutorSignature y r.EmitterAcceptanceAt dentro del struct canónico que firma el emisor en ComputeEmitterReceiptHash (solo limpiar EmitterSignature).", code: "cleared := *r\ncleared.ExecutorSignature = \"\"\ncleared.EmitterAcceptanceAt = nil" },
+  { id: "F1-04", area: "F1", areaLabel: "1. Cripto & PKI", severity: "HIGH", title: "Divergencia de normalización de repositorio entre ComputeEnvelopeHash y SignEnvelope", file: "pkg/envelope/validate.go:297-316 | pkg/envelope/signer.go:26-38, 60-75", cause: "ComputeEnvelopeHash recorta sufijos / y .git de env.Territory.Repository sobre una copia temporal antes de calcular el hash SHA-256. En cambio, SignEnvelope y VerifyEnvelopeSignature serializan el struct original sin normalizar. Si un envelope se crea con barra final y un transporte intermedio lo normaliza, el hash coincide pero la verificación de firma Ed25519 falla.", fix: "Normalizar env.Territory.Repository directamente en Validate() o en un helper canónico compartido tanto por ComputeEnvelopeHash como por SignEnvelope/VerifyEnvelopeSignature.", code: "repo := strings.TrimSuffix(strings.TrimSuffix(env.Territory.Repository, \"/\"), \".git\") // Solo en Hash, ausente en SignEnvelope" },
+  { id: "F1-05", area: "F1", areaLabel: "1. Cripto & PKI", severity: "MEDIUM", title: "Contradicción y bloqueo en estados terminales de CognitiveTaskEnvelope", file: "pkg/envelope/types.go:264-275 | pkg/envelope/contract_state.go:14-38", cause: "1) ContractStatusSettled.IsTerminal() devuelve true en types.go, pero allowedTransitions permite transicionar desde SETTLED hacia ACCEPTED_FINAL y DISPUTED. 2) El estado PROPOSED solo permite ir a ACCEPTED o REJECTED; si el ejecutor muere en el pre-flight handshake, no puede transicionar a EXPIRED ni ABANDONED. 3) REMEDIATING no permite ir a SETTLEMENT_TIMEOUT.", fix: "Hacer que ContractStatusSettled.IsTerminal() devuelva false y agregar las transiciones hacia EXPIRED/ABANDONED desde PROPOSED y hacia SETTLEMENT_TIMEOUT desde REMEDIATING.", code: "case ContractStatusSettled, ContractStatusAcceptedFinal: return true // Contradice contract_state.go" },
+  { id: "F1-06", area: "F1", areaLabel: "1. Cripto & PKI", severity: "MEDIUM", title: "Falta restricción UNIQUE sobre receipt_id en el esquema SQLite de ChainStore", file: "pkg/receipt/chain.go:76-96, 465-475, 540-565", cause: "La tabla receipts define receipt_id TEXT NOT NULL sin PRIMARY KEY ni UNIQUE. InjectReceipt usa INSERT OR REPLACE, que sin constraint UNIQUE sobre receipt_id actúa como INSERT común, permitiendo duplicar receipt_id y haciendo que GetReceipt/UpdateReceipt afecten filas ambiguas.", fix: "Añadir CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_receipt_id ON receipts(receipt_id); en InitSchema.", code: "CREATE TABLE IF NOT EXISTS receipts ( receipt_id TEXT NOT NULL, ... )" },
+  { id: "F1-07", area: "F1", areaLabel: "1. Cripto & PKI", severity: "MEDIUM", title: "Desincronización de caché de revocación en memoria frente a SQLite", file: "pkg/server/http/server.go:285-292 | pkg/server/http/middleware.go:384-402", cause: "Server.IsCertRevoked consulta únicamente s.revocationCache en RAM. Si se revoca un certificado mediante CLI o en otra instancia contra la misma base SQLite, el servidor en ejecución jamás consulta s.certStore y sigue aceptando conexiones mTLS del certificado revocado hasta reiniciarse.", fix: "Consultar s.certStore.IsCertRevoked(ctx, serial) cuando la caché en memoria devuelva false o recargar periódicamente desde SQLite.", code: "return s.revocationCache.IsRevoked(serial) // Nunca consulta s.certStore si hay miss" },
+  { id: "F1-08", area: "F1", areaLabel: "1. Cripto & PKI", severity: "LOW", title: "Certificados ECDSA P-256 incluyen KeyEncipherment (prohibido por RFC 5480) y CA omite MaxPathLenZero", file: "pkg/pki/pki.go:108-118, 253-255, 635-637", cause: "GenerateNodeCert y SignCSR configuran KeyUsageKeyEncipherment en llaves ECDSA P-256 (RFC 5480 §3 lo prohíbe para ECDSA). Además, GenerateCA define MaxPathLen: 0 sin MaxPathLenZero: true, omitiendo pathLenConstraint en ASN.1.", fix: "Usar únicamente x509.KeyUsageDigitalSignature para certificados de nodo ECDSA y agregar MaxPathLenZero: true en GenerateCA.", code: "KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment" },
+  { id: "F2-01", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "CRITICAL", title: "Path Traversal arbitrario y lectura/stat de archivos del host en Evaluator.absPath", file: "pkg/settlement/evaluate.go:259-264, 125, 143, 207-210", cause: "Evaluator.absPath(p) devuelve p directamente si filepath.IsAbs(p) es true, o hace filepath.Join(e.workingDir, p) sin verificar si ../ escapa del workspace. En evalFileModified, evalFileHashEquals y evalGitCleanWorktree, un contrato puede inspeccionar hashes o existencia de /etc/shadow, ~/.ssh/id_rsa o cualquier directorio del host.", fix: "Rechazar rutas absolutas y validar contención física con filepath.EvalSymlinks y filepath.Rel(e.workingDir, cleanPath), abortando si empieza con ..", code: "func (e *Evaluator) absPath(p string) string {\n    if filepath.IsAbs(p) { return p }\n    return filepath.Join(e.workingDir, p)\n}" },
+  { id: "F2-02", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "CRITICAL", title: "Ejecución de comandos de Settlement en el host sin sandbox y filtración de os.Environ()", file: "pkg/settlement/evaluate.go:66-72, 266-285", cause: "A diferencia de las precondiciones que pasan por ValidatePreconditionCommand, las aserciones de settlement (AssertionCommandExitCode, AssertionCommandOutputContains, AssertionNoRegression) ejecutan comandos directamente en el host vía exec.CommandContext. Además, NewEvaluator inicializa e.env = os.Environ(), exponiendo todos los secretos y credenciales del host.", fix: "Ejecutar las aserciones de comando dentro del sandbox aislado del runner (bwrap/contenedor) y reemplazar os.Environ() por una lista blanca mínima de entorno.", code: "env: os.Environ(), // Filtra todas las variables y secretos del proceso host" },
+  { id: "F2-03", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "CRITICAL", title: "Escape de sandbox y ejecución en el host por montaje Read-Write del bare RepoCache en GentleShellRunner", file: "pkg/server/runner/gentleshell.go:283-294, 594-620", cause: "En buildDefaultSandboxMounts, el repositorio bare cache del host (repoCache) se monta con --bind (lectura y escritura) dentro del sandbox de Bubblewrap. Una tarea dentro del sandbox puede escribir un script en repoCache/hooks/post-checkout. Cuando el demonio del worker ejecuta git -C cachePath worktree remove/prune FUERA del sandbox, git dispara los hooks en el host sin aislamiento.", fix: "Montar repoCache en solo lectura (--ro-bind) y pasar siempre -c core.hooksPath=/dev/null en todas las invocaciones git del host.", code: "if repoCache != \"\" {\n    out = append(out, \"--bind\", repoCache, repoCache) // RW permite plantar git hooks\n}" },
+  { id: "F2-04", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "CRITICAL", title: "Server-Side Request Forgery (SSRF) crítico en el despachador de Webhooks", file: "pkg/server/webhook/dispatcher.go:82-105 | pkg/server/http/handlers.go:896-930", cause: "handleCreateWebhook acepta cualquier req.URL sin validar esquema ni IP de destino. El dispatcher realiza peticiones HTTP POST hacia wh.URL, permitiendo atacar servicios en loopback (127.0.0.1), redes internas VPC (10.0.0.0/8) o metadata cloud (169.254.169.254).", fix: "Validar esquema http/https y configurar un net.Dialer.Control que bloquee conexiones a rangos loopback, RFC 1918, link-local y metadata cloud.", code: "req, err := http.NewRequest(http.MethodPost, wh.URL, bytes.NewReader(payload))\nresp, err := d.client.Do(req)" },
+  { id: "F2-05", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "CRITICAL", title: "Lectura arbitraria de archivos del host vía Symlink Traversal en /v1/workspace/file", file: "pkg/server/http/handlers.go:683-700, 763-800", cause: "resolveWorkspacePath limpia la ruta de forma puramente léxica (filepath.Clean y filepath.Rel), pero jamás evalúa enlaces simbólicos con filepath.EvalSymlinks. Si un repositorio o agente crea un symlink dentro del workspace apuntando a /etc/shadow o claves del host, os.ReadFile(fullPath) sigue el symlink y devuelve el archivo por HTTP 200.", fix: "Resolver la ruta física real mediante filepath.EvalSymlinks(fullPath) y verificar con filepath.Rel(s.workspaceRoot, realPath) que resida dentro del workspace.", code: "fullPath = filepath.Join(s.workspaceRoot, filepath.Clean(\"/\"+subPath))\nrel, err := filepath.Rel(s.workspaceRoot, fullPath) // Sin EvalSymlinks" },
+  { id: "F2-06", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Directorio persistente ~/.gentle-shell del host montado en Read-Write dentro del sandbox", file: "pkg/server/runner/gentleshell.go:238", cause: "defaultSystemMounts() monta ~/.gentle-shell con --bind (lectura-escritura) en todos los contenedores bwrap, permitiendo contaminar de forma persistente todas las ejecuciones futuras del worker.", fix: "Montar ~/.gentle-shell en modo solo lectura (--ro-bind) y usar un directorio efímero por tarea.", code: "\"--bind\", filepath.Join(home, \".gentle-shell\"), filepath.Join(home, \".gentle-shell\")" },
+  { id: "F2-07", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Acoplamiento duro a Linux bwrap sin chequeo preflight ni soporte de ejecución real en macOS", file: "pkg/server/runner/gentleshell.go:214-239, 322-356 | cmd/gentle-mesh/main.go:897", cause: "GentleShellRunner codifica rutas específicas de Linux (/lib64, /proc, --unshare-pid) y no verifica en el arranque si bwrap existe o si el SO es Linux. En macOS falla recién cuando recibe una tarea (GENTLESHELL_START_ERROR).", fix: "Ejecutar validación preflight (runtime.GOOS y exec.LookPath) al inicializar el runner.", code: "// Falla en ejecución de tarea en vez de validar en el arranque del daemon" },
+  { id: "F2-08", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Timeout de inactividad en PiRunner neutralizado por bloqueo síncrono en scanner.Scan()", file: "pkg/server/runner/pi.go:183-205", cause: "En piStream.consume, la verificación time.Since(lastOutput) > inactivityTimeout está dentro de for scanner.Scan(). Si el subproceso se cuelga en silencio, scanner.Scan() bloquea indefinidamente y el timeout jamás se evalúa.", fix: "Bombear líneas desde una goroutine lectora hacia un canal y hacer select contra un time.NewTimer.", code: "for scanner.Scan() { // Si el hijo se cuelga en silencio, bloquea acá para siempre" },
+  { id: "F2-09", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Tormenta ilimitada de goroutines y OOM remoto por io.ReadAll sin límite en Webhooks", file: "pkg/server/webhook/dispatcher.go:74-76, 108-111", cause: "sendToWebhooks lanza go d.sendWebhook sin límite de concurrencia y cuando StatusCode >= 400 ejecuta io.ReadAll(resp.Body) sin io.LimitReader, permitiendo agotar toda la RAM del coordinador.", fix: "Usar un pool acotado de workers y envolver la lectura en io.LimitReader(resp.Body, 4096).", code: "if resp.StatusCode >= 400 { body, _ := io.ReadAll(resp.Body) }" },
+  { id: "F2-10", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "SSRF saliente y OOM por JSON sin límite en sincronización de Federación (SyncPeer)", file: "pkg/server/federation/manager.go:82-120, 203-240", cause: "RegisterPeer acepta cualquier Endpoint sin validar IP ni esquema, y SyncPeer decodifica resp.Body con json.NewDecoder sin io.LimitReader.", fix: "Validar URLs e IPs de peers federados y limitar el body con io.LimitReader(resp.Body, 1<<20).", code: "if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil" },
+  { id: "F2-11", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Falta límite de tamaño (MaxBytesReader) en POST /v1/tasks/{id}/checkpoint", file: "pkg/server/http/handlers.go:1002-1025", cause: "handleTaskCheckpoint decodifica directamente de r.Body sin stdhttp.MaxBytesReader, permitiendo enviar payloads arbitrariamente grandes.", fix: "Envolver r.Body con stdhttp.MaxBytesReader(w, r.Body, 256<<10).", code: "if err := json.NewDecoder(r.Body).Decode(&req); err != nil" },
+  { id: "F2-12", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Bypass de Rate Limiter mediante X-Forwarded-For falsificable y fuga infinita de memoria en mapa de clientes", file: "pkg/server/http/middleware.go:40-70, 83-93", cause: "RateLimitMiddleware confía en X-Forwarded-For sin verificar proxy confiable y nunca expira las entradas de RateLimiter.clients.", fix: "Usar r.RemoteAddr por defecto e implementar expulsión TTL/LRU sobre el mapa de clientes.", code: "ip := r.Header.Get(\"X-Forwarded-For\")" },
+  { id: "F2-13", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Worker daemon carece de HostMiddleware/CORSMiddleware y permite bind externo sin autenticación", file: "pkg/server/worker/server.go:60-120", cause: "Si cfg.BearerTokens está vacío, el worker expone /v1/execute sin autenticación ni validateExposure(), y carece de HostMiddleware/CORSMiddleware.", fix: "Exigir autenticación fuera de loopback y agregar HostMiddleware y CORSMiddleware.", code: "// pkg/server/worker/server.go omite validateExposure() y HostMiddleware" },
+  { id: "F2-14", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "HIGH", title: "Cola interna del Worker responde HTTP 200 prematuro y rompe el failover multi-nodo en MeshRunner", file: "pkg/server/worker/server.go:183-255 | pkg/server/runner/mesh.go:215-245", cause: "Cuando un worker está lleno, encola y envía HTTP 200 OK. Si luego expira QueueTimeout, MeshRunner ve que ya hubo HTTP 200 (!isPreAcceptanceTransportError) y aborta sin hacer failover a otros nodos libres.", fix: "Devolver HTTP 429 Too Many Requests cuando los slots activos estén llenos.", code: "if !isPreAcceptanceTransportError(runErr) { return runErr, nil }" },
+  { id: "F2-15", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "MEDIUM", title: "Tokenizer SplitCommand descarta argumentos vacíos, falla con tabs/newlines y silencia comillas abiertas", file: "pkg/settlement/evaluate.go:301-331", cause: "SplitCommand ignora tabs/newlines, descarta tokens vacíos entre comillas alterando posiciones y no reporta error si una comilla queda abierta.", fix: "Reemplazar por un lexer POSIX determinista que preserve argumentos vacíos entrecomillados y valide comillas.", code: "if t := strings.TrimSpace(current.String()); t != \"\" { tokens = append(tokens, t) }" },
+  { id: "F2-16", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "MEDIUM", title: "Fuga de goroutines y conexiones HTTP sin drenar en consultas interactivas de RemoteRunner", file: "pkg/server/runner/remote.go:205-236", cause: "Cada EventQuery lanza una goroutine sin límite y cierra resp.Body sin io.Copy(io.Discard, resp.Body), rompiendo keep-alive.", fix: "Acotar queries concurrentes con semáforo y drenar resp.Body antes de cerrar.", code: "if resp, err := r.client.Do(replyHTTP); err == nil { resp.Body.Close() }" },
+  { id: "F2-17", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "MEDIUM", title: "Caché estancada en Federación genera conflictos territoriales fantasma permanentes", file: "pkg/server/federation/manager.go:312-385", cause: "FindConflict evalúa peer.cachedManifest sin verificar si el peer está Offline ni si el manifiesto expiró por TTL.", fix: "Agregar TTL a cachedManifest e ignorar manifiestos de peers marcados como PeerStatusOffline.", code: "if peer.cachedManifest == nil { continue } // Sin chequeo de TTL ni PeerStatusOffline" },
+  { id: "F2-18", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "MEDIUM", title: "CORS permite cualquier subdominio global *.ts.net de Tailscale", file: "pkg/server/http/middleware.go:132-140", cause: "originAllowed acepta cualquier origen terminado en .ts.net, incluyendo tailnets de terceros.", fix: "Restringir al nombre específico de la tailnet del cluster o exigir orígenes explícitos.", code: "if strings.HasSuffix(hostname, \".ts.net\") { return true }" },
+  { id: "F2-19", area: "F2", areaLabel: "2. Sandbox & HTTP", severity: "MEDIUM", title: "Pérdida permanente de respuesta en /v1/reply del Worker por borrado prematuro del mapa", file: "pkg/server/worker/server.go:279-307", cause: "handleReply ejecuta delete(s.queries, req.QueryID) antes del select que envía al canal. Si cae en default (409), el reintento da 404.", fix: "Borrar req.QueryID únicamente tras confirmar el envío al canal.", code: "if ok { delete(s.queries, req.QueryID) }" },
+  { id: "F3-01", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "CRITICAL", title: "Pool SQLite sin SetMaxOpenConns(1), PRAGMA busy_timeout no heredado y doble pool compitiendo por gentle-mesh.db", file: "pkg/server/store/sqlite.go:30-58 | cmd/gentle-mesh/main.go:183-205", cause: "1) PRAGMA busy_timeout=5000 solo se ejecuta en una conexión del pool; nuevas conexiones nacen con busy_timeout=0. 2) Se omitió db.SetMaxOpenConns(1). 3) main.go:183 abre un segundo sql.Open sobre el mismo gentle-mesh.db sin WAL ni writeMu compartido.", fix: "Pasar PRAGMAs en el DSN, aplicar db.SetMaxOpenConns(1) y compartir un único *sql.DB entre todos los stores.", code: "rawDB, rawErr := sql.Open(\"sqlite\", dbPath) // Segundo pool sin WAL ni writeMu" },
+  { id: "F3-02", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "CRITICAL", title: "Doble liberación de lock de rama y ejecución solapada al cancelar tareas (POST /v1/tasks/{id}/cancel)", file: "pkg/server/http/handlers.go:633-646 | pkg/server/http/scheduler.go:338-348, 426-434", cause: "handleTaskCancel llama inmediatamente a ReleaseLock y s.scheduler.Drain() mientras el runner cancelado sigue corriendo, despachando la siguiente tarea sobre la misma rama en paralelo.", fix: "Eliminar ReleaseLock y Drain() de handlers.go; solo TerritoryScheduler.complete(mt) debe liberar el lock al terminar el runner.", code: "_ = s.registry.Locks().ReleaseLock(t.Request.GitRepo, t.Request.GitBranch, id)\ns.scheduler.Drain()" },
+  { id: "F3-03", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "HIGH", title: "Bypass de la cola FIFO e inversión de prioridad en TerritoryScheduler.Schedule", file: "pkg/server/http/scheduler.go:198-223", cause: "Schedule(mt) solo verifica conflictos contra RunningManifest() e ignora s.queue, permitiendo que tareas nuevas salten por delante de tareas ya encoladas.", fix: "Verificar si s.queue contiene tareas pendientes antes de permitir el despacho directo.", code: "conflict := s.findConflictLocked(mt) // Solo mira RunningManifest(), ignora s.queue" },
+  { id: "F3-04", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "HIGH", title: "Reconciliación rota en Crash Recovery: sobrescribe tareas completadas en .jsonl como FAILED", file: "pkg/server/task/manager.go:94-116, 660-675", cause: "rehydrateTask lee el archivo .jsonl solo para restaurar eventSeq, ignorando si el último evento ya fue EventCompletion. Si cayó antes de actualizar SQLite, la marca como FAILED.", fix: "Inspeccionar el último evento del .jsonl durante rehydrateTask para reconciliar el estado terminal en SQLite.", code: "if t.Status == protocol.TaskStatusRunning { _ = m.FailTask(t.TaskID, OrphanedTaskCode, OrphanedTaskMessage) }" },
+  { id: "F3-05", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "HIGH", title: "Corrupción permanente de logs .jsonl tras escritura parcial en un crash", file: "pkg/server/task/logger.go:33-40, 110-135", cause: "NewJSONLLogger abre con os.O_APPEND sin truncar una última línea parcial sin salto de línea tras un crash, concatenando el siguiente JSON en la misma línea rota.", fix: "Truncar hasta el último salto de línea válido al abrir NewJSONLLogger.", code: "f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)" },
+  { id: "F3-06", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "HIGH", title: "Pérdida silenciosa de eventos terminales (EventCompletion / EventError) en clientes SSE lentos", file: "pkg/server/task/task.go:212-225, 395-408, 640-650", cause: "Si el buffer de 64 eventos se llena, el select no bloqueante descarta incluso EventCompletion/EventError e inmediatamente cierra el canal sub.", fix: "Garantizar entrega obligatoria para eventos terminales (EventStatus, EventCompletion, EventError).", code: "select { case sub <- *evt: default: } // Descarta evento terminal antes de close(sub)" },
+  { id: "F3-07", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "HIGH", title: "Tareas huérfanas eternas cuando un worker muere antes de emitir su primer evento SSE", file: "pkg/server/runner/mesh.go:128-142 | pkg/server/task/manager.go:472-500", cause: "nodeAttributionSink asigna t.NodeID recién en el primer evento SSE. Si el worker muere antes del primer evento, FailTasksOfNode no encuentra t.NodeID.", fix: "Atribuir t.NodeID inmediatamente al seleccionar el nodo antes de iniciar la llamada de red.", code: "s.once.Do(func() { s.attributor.AttributeNode(s.nodeID) })" },
+  { id: "F3-08", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "MEDIUM", title: "Inconsistencia case-sensitive en BranchLockManager vs detección de conflictos territoriales", file: "pkg/server/registry/lock.go:23-30 | pkg/protocol/federation.go:174-182", cause: "ClashesWith usa strings.EqualFold pero makeBranchKey en lock.go es case-sensitive.", fix: "Normalizar la rama en makeBranchKey.", code: "branch: strings.TrimSpace(branch)" },
+  { id: "F3-09", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "MEDIUM", title: "Creación innecesaria de tarea y archivo .jsonl antes de verificar Idempotency-Key", file: "pkg/server/http/handlers.go:434-456 | pkg/server/registry/idempotency.go:19-58", cause: "handleTaskCreate llama a CreateTask antes de RecordOrGet en Idempotency y la caché vive solo en RAM.", fix: "Verificar Idempotency-Key antes de CreateTask y persistir llaves en SQLite.", code: "t, err := s.taskManager.CreateTask(req)" },
+  { id: "F3-10", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "MEDIUM", title: "Canales pendingQueries quedan abiertos al terminar o cancelar una tarea", file: "pkg/server/task/task.go:415-465", cause: "TransitionTo cierra t.subscribers pero olvida cerrar t.pendingQueries.", fix: "Cerrar y limpiar t.pendingQueries al entrar en estado terminal.", code: "// TransitionTo no limpia t.pendingQueries" },
+  { id: "F3-11", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "MEDIUM", title: "TaskManager.Close() descarta actualizaciones finales en SQLite durante el apagado", file: "pkg/server/task/manager.go:506-538, 705-720", cause: "Close() marca m.closed = true antes de m.runnerWg.Wait(), haciendo que syncTaskToStore aborte el guardado final.", fix: "Esperar a m.runnerWg.Wait() antes de marcar m.closed = true.", code: "m.closed = true\nm.mu.Unlock()\nm.runnerWg.Wait()" },
+  { id: "F3-12", area: "F3", areaLabel: "3. Concurrencia & SQLite", severity: "LOW", title: "Doble escritura redundante en syncTaskToStore y falta de cs.mu en UpdateReceipt", file: "pkg/server/task/manager.go:742-745 | pkg/receipt/chain.go:534-555", cause: "syncTaskToStore ejecuta UpdateStatus seguido de SaveTask (que actualiza las mismas columnas), y UpdateReceipt no toma cs.mu.", fix: "Eliminar UpdateStatus redundante y proteger UpdateReceipt con cs.mu.", code: "_ = st.UpdateStatus(ctx, ...)\n_ = st.SaveTask(ctx, record)" },
+  { id: "F4-01", area: "F4", areaLabel: "4. Arquitectura & Deuda", severity: "CRITICAL", title: "Split-Brain arquitectónico e inversión DAG: 3,241 LOC de servidor de producción dentro de integration/agent/", file: "integration/agent/server.go:1-1552 | pkg/shell/mesh.go:8 | cmd/test-harness/main.go:21", cause: "El motor HTTP completo del protocolo RFC-002 vive en integration/agent/ y pkg/shell/mesh.go importa integration/agent, invirtiendo el DAG de paquetes.", fix: "Extraer el transporte RFC-002 hacia pkg/ y unificar los servidores HTTP.", code: "import \"github.com/gentleman-programming/gentle-mesh/integration/agent\" // en pkg/shell/mesh.go" },
+  { id: "F4-02", area: "F4", areaLabel: "4. Arquitectura & Deuda", severity: "CRITICAL", title: "Fallback criptográfico a time.Now().UnixNano() cuando falla crypto/rand.Read", file: "cmd/gentle-mesh/main.go:2223-2228 | pkg/receipt/append.go:208-213 | pkg/shell/shell.go:317-319", cause: "En generateSecureToken, newReceiptID y newContractID, si crypto/rand.Read falla, cae en un fallback usando time.Now().UnixNano() en vez de fallar cerrado.", fix: "Eliminar todo fallback basado en reloj; devolver error o abortar si falla el CSPRNG.", code: "b[i] = charset[time.Now().UnixNano()%int64(len(charset))]" },
+  { id: "F4-03", area: "F4", areaLabel: "4. Arquitectura & Deuda", severity: "HIGH", title: "Monolitos Godfile: cmd/gentle-mesh/main.go (2,462 LOC) y pkg/server/http/handlers.go (1,067 LOC)", file: "cmd/gentle-mesh/main.go:1-2462 | pkg/server/http/handlers.go:1-1067", cause: "main.go concentra 7 responsabilidades ortogonales en 2,462 líneas y handlers.go concentra todos los endpoints HTTP.", fix: "Descomponer main.go por subcomando y handlers.go por dominio.", code: "// cmd/gentle-mesh/main.go: 2,462 LOC" },
+  { id: "F4-04", area: "F4", areaLabel: "4. Arquitectura & Deuda", severity: "HIGH", title: "Errores de persistencia silenciados con _ = y regla G104 deshabilitada en CI", file: "pkg/server/task/manager.go:346, 579, 707-708 | .github/workflows/ci.yml:68", cause: "Las escrituras en SQLite y JSONL descartan errores con _ = y se excluyó G104 en gosec.", fix: "Propagar/loguear errores de persistencia y rehabilitar G104 en CI.", code: "_ = task.logger.WriteEvent(*evt)" },
+  { id: "F4-05", area: "F4", areaLabel: "4. Arquitectura & Deuda", severity: "HIGH", title: "Fuga de conexión HTTP en runWorker por defer resp.Body.Close() antes de loop infinito", file: "cmd/gentle-mesh/main.go:964", cause: "En runWorker, la línea 964 ejecuta defer resp.Body.Close() justo antes del loop infinito for {} de heartbeats, dejando la conexión abierta toda la vida del proceso.", fix: "Cerrar resp.Body.Close() explícitamente antes de entrar al loop for.", code: "defer resp.Body.Close() // Antes del loop infinito en runWorker" },
+  { id: "F4-06", area: "F4", areaLabel: "4. Arquitectura & Deuda", severity: "HIGH", title: "Condición de carrera peligrosa en killProcessTree: envía SIGKILL tras 3s a un PID que el SO pudo reciclar", file: "pkg/server/runner/gentleshell.go:768-774", cause: "Lanza una goroutine que duerme 3s y envía SIGKILL al PID numérico sin cancelar si cmd.Wait() ya recolectó el proceso.", fix: "Usar cmd.WaitDelay o cancelar la goroutine cuando cmd.Wait() retorne.", code: "time.Sleep(sandboxSIGKILLGrace)\n_ = proc.Signal(syscall.SIGKILL)" },
+  { id: "F4-07", area: "F4", areaLabel: "4. Arquitectura & Deuda", severity: "MEDIUM", title: "Handlers RFC-002 usan context.Background(), Server.Shutdown olvida webhookDispatcher.Stop() y time.After en loops", file: "integration/agent/server.go:533, 956+ | pkg/server/http/server.go:632-643 | pkg/server/runner/simulated.go:197", cause: "Los handlers usan context.Background() ignorando r.Context(), Shutdown() no detiene webhookDispatcher y simulated.go usa time.After en loops.", fix: "Derivar de r.Context(), llamar a webhookDispatcher.Stop() y reutilizar time.NewTimer.", code: "ctx, cancel := context.WithTimeout(context.Background(), s.config.EvalTimeout)" },
+  { id: "F5-01", area: "F5", areaLabel: "5. Tests & Gates", severity: "CRITICAL", title: "Agotamiento de puertos efímeros del SO (16,236 sockets en TIME_WAIT) en TestServer_SetSigner_ConcurrentRaceFree", file: "integration/agent/server_mesh_test.go:565-587", cause: "Verificado en vivo: 4 goroutines llaman a client.Get(ts.URL + \"/health\") sin pausa durante 2 segundos y cierran resp.Body sin drenarlo, agotando los 16,384 puertos efímeros en macOS y rompiendo TestEndpointsAbsentInProduction y TestTLS_* con EADDRNOTAVAIL.", fix: "Drenar resp.Body con io.Copy(io.Discard, resp.Body) y agregar un throttle o probar SetSigner en memoria.", code: "resp, err := client.Get(ts.URL + \"/health\")\nif err == nil { resp.Body.Close() }" },
+  { id: "F5-02", area: "F5", areaLabel: "5. Tests & Gates", severity: "CRITICAL", title: "Condición de carrera real reproducible en TaskManager.FailTask bajo go test -race", file: "pkg/server/task/manager.go:371-402 | pkg/server/http/silent_node_test.go:400-445", cause: "Verificado en vivo al correr go test -race ./pkg/server/http: TestSilentNodeConcurrentEOFAndSweepSingleTransitionAndEvent falla con expected 1 EventError, got 0 porque FailTask suelta task.mu antes de EmitEvent y otra goroutine cierra los canales de suscriptores en TransitionTo(Failed).", fix: "Hacer atómica la asignación de error, emisión de EventError y transición a Failed bajo el mismo lock.", code: "task.mu.Unlock() // G2 entra aquí y cierra canales en TransitionTo antes de que G1 haga EmitEvent" },
+  { id: "F5-03", area: "F5", areaLabel: "5. Tests & Gates", severity: "MEDIUM", title: "Sincronización por time.Sleep (>30s acumulados) en tests HTTP y 0% de tests unitarios en pkg/server/webhook", file: "pkg/server/http/retry_terminates_test.go | pkg/server/webhook/", cause: "Los tests de pkg/server/http usan decenas de time.Sleep fijos (500ms-2500ms) y pkg/server/webhook no tiene ningún archivo _test.go.", fix: "Usar canales/tickers deterministas y agregar tests unitarios para pkg/server/webhook.", code: "// pkg/server/webhook: ? [no test files]" },
+  { id: "F5-04", area: "F5", areaLabel: "5. Tests & Gates", severity: "LOW", title: "Expresiones regulares en scripts/security-gates.sh vulnerables a llamadas multilínea o variables", file: "scripts/security-gates.sh:18-24", cause: "Los gates S6 y S1-Literal usan grep línea por línea buscando literales exactos, eludibles con llamadas multilínea o variables.", fix: "Complementar con un analizador basado en go/ast.", code: "SHELL_PATTERN='exec\\.Command.*\"sh\".*\"-c\"'" }
+];
+
+let activeArea = "ALL";
+let activeSev = "ALL";
+let searchQuery = "";
+let allExpanded = false;
+
+const container = document.getElementById("findings-container");
+const emptyState = document.getElementById("empty-state");
+
+function getSevBadgeClass(sev) {
+  if (sev === "CRITICAL") return "badge-crit";
+  if (sev === "HIGH") return "badge-high";
+  if (sev === "MEDIUM") return "badge-med";
+  if (sev === "LOW") return "badge-low";
+  return "badge-area";
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderFindings() {
+  container.innerHTML = "";
+  const filtered = FINDINGS.filter(function(f) {
+    const matchArea = activeArea === "ALL" || f.area === activeArea;
+    const matchSev = activeSev === "ALL" || f.severity === activeSev;
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q || f.title.toLowerCase().includes(q) || f.file.toLowerCase().includes(q) || f.cause.toLowerCase().includes(q) || f.fix.toLowerCase().includes(q) || f.id.toLowerCase().includes(q);
+    return matchArea && matchSev && matchSearch;
+  });
+  if (filtered.length === 0) {
+    emptyState.style.display = "block";
+    return;
+  }
+  emptyState.style.display = "none";
+  filtered.forEach(function(f, idx) {
+    const card = document.createElement("div");
+    card.className = "finding-card" + (allExpanded || idx < 3 ? " open" : "");
+    card.setAttribute("data-severity", f.severity);
+    const codeBlock = f.code ? "<pre class=\"code-block\"><code>" + escapeHtml(f.code) + "</code></pre>" : "";
+    card.innerHTML =
+      "<div class=\"finding-header\">" +
+        "<div class=\"finding-title-wrap\">" +
+          "<div class=\"finding-badges\">" +
+            "<span class=\"finding-id\">#" + f.id + "</span>" +
+            "<span class=\"badge " + getSevBadgeClass(f.severity) + "\">" + f.severity + "</span>" +
+            "<span class=\"badge badge-area\">" + f.areaLabel + "</span>" +
+          "</div>" +
+          "<div class=\"finding-title\">" + escapeHtml(f.title) + "</div>" +
+          "<div class=\"finding-file\">📍 " + escapeHtml(f.file) + "</div>" +
+        "</div>" +
+        "<div class=\"finding-toggle\">▼</div>" +
+      "</div>" +
+      "<div class=\"finding-body\">" +
+        "<div class=\"detail-grid\">" +
+          "<div class=\"detail-box cause\"><h4>⚠️ Invariante Roto / Causa Raíz</h4><p>" + escapeHtml(f.cause) + "</p></div>" +
+          "<div class=\"detail-box fix\"><h4>🛠️ Remediación Arquitectónica</h4><p>" + escapeHtml(f.fix) + "</p></div>" +
+        "</div>" +
+        codeBlock +
+      "</div>";
+    card.querySelector(".finding-header").addEventListener("click", function() {
+      card.classList.toggle("open");
+    });
+    container.appendChild(card);
+  });
+}
+
+document.querySelectorAll("#area-filters .filter-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll("#area-filters .filter-btn").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    activeArea = btn.getAttribute("data-area");
+    renderFindings();
+  });
+});
+
+document.querySelectorAll("#sev-filters .filter-btn[data-sev]").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll("#sev-filters .filter-btn[data-sev]").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    activeSev = btn.getAttribute("data-sev");
+    renderFindings();
+  });
+});
+
+document.getElementById("toggle-all-btn").addEventListener("click", function(e) {
+  allExpanded = !allExpanded;
+  e.target.textContent = allExpanded ? "Colapsar Todo" : "Expandir Todo";
+  document.querySelectorAll(".finding-card").forEach(function(c) {
+    if (allExpanded) c.classList.add("open");
+    else c.classList.remove("open");
+  });
+});
+
+document.getElementById("search-box").addEventListener("input", function(e) {
+  searchQuery = e.target.value;
+  renderFindings();
+});
+
+
+function updateFilterCounts() {
+  const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+  const areaCounts = { F1: 0, F2: 0, F3: 0, F4: 0, F5: 0 };
+  FINDINGS.forEach(function(f) {
+    if (counts[f.severity] !== undefined) counts[f.severity]++;
+    if (areaCounts[f.area] !== undefined) areaCounts[f.area]++;
+  });
+  document.querySelectorAll("#sev-filters .filter-btn[data-sev]").forEach(function(btn) {
+    var sev = btn.getAttribute("data-sev");
+    if (sev !== "ALL" && counts[sev] !== undefined) {
+      btn.textContent = (sev === "CRITICAL" ? "Critical" : sev === "HIGH" ? "High" : sev === "MEDIUM" ? "Medium" : "Low") + " (" + counts[sev] + ")";
+    }
+  });
+  document.querySelectorAll("#area-filters .filter-btn[data-area]").forEach(function(btn) {
+    var area = btn.getAttribute("data-area");
+    if (area !== "ALL" && areaCounts[area] !== undefined) {
+      var match = btn.textContent.match(/^(.*?)\s*\(\d+\)$/);
+      if (match) {
+        btn.textContent = match[1].trim() + " (" + areaCounts[area] + ")";
+      }
+    }
+  });
+}
+updateFilterCounts();
+
+renderFindings();
+
+</script>
+</body>
+</html>
